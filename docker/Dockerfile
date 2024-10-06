@@ -1,17 +1,13 @@
-# Stage 1: Download all dependencies
-FROM golang:1.16.4-alpine as builder
-
-WORKDIR /usr/local/go/src/github.com/tibia-oce/discord-bot
+FROM --platform=$BUILDPLATFORM golang:1.23.2-alpine as builder
+ARG TARGETOS
+ARG TARGETARCH
+WORKDIR /app
 COPY go.mod .
 COPY go.sum .
 COPY src ./src
-
-RUN CGO_ENABLED=0 go build -ldflags "-s -w" -o /bin/application ./src/
+RUN CGO_ENABLED=0 GOOS=$TARGETOS GOARCH=$TARGETARCH go build -ldflags "-s -w" -o /bin/application ./src/
 
 FROM alpine:latest
-
-# Copy our static executable.
+COPY migrations /migrations
 COPY --from=builder /bin/application /bin/application
-
 ENTRYPOINT ["/bin/application"]
-

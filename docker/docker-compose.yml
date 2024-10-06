@@ -1,14 +1,15 @@
 version: "3.3"
 
 services:
+
   application:
+    container_name: application
     build:
-      context: ../.github
-      dockerfile: Dockerfile
+      context: ..
+      dockerfile: docker/Dockerfile
     restart: unless-stopped
     ports:
       - 80:80
       - 9090:9090
-    environment:
-      - APP_HTTP_PORT=80
-      - APP_GRPC_PORT=9090
+    env_file:
+      - '../.env'
