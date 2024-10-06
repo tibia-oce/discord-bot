@@ -8,6 +8,5 @@ COPY src ./src
 RUN CGO_ENABLED=0 GOOS=$TARGETOS GOARCH=$TARGETARCH go build -ldflags "-s -w" -o /bin/application ./src/
 
 FROM alpine:latest
-COPY migrations /migrations
 COPY --from=builder /bin/application /bin/application
 ENTRYPOINT ["/bin/application"]
