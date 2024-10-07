@@ -1,10 +1,11 @@
 package configs
 
 import (
-	"github.com/joho/godotenv"
-	"github.com/tibia-oce/discord-bot/src/logger"
 	"os"
 	"strconv"
+
+	"github.com/joho/godotenv"
+	"github.com/tibia-oce/discord-bot/src/logger"
 )
 
 type Config interface {
@@ -12,11 +13,11 @@ type Config interface {
 }
 
 type GlobalConfigs struct {
-	DBConfigs     DBConfigs
-	ServerConfigs ServerConfigs
+	DBConfigs        DBConfigs
+	ServerConfigs    ServerConfigs
+	DiscordBotConfig DiscordBotConfigs
 }
 
-// Init only works for variables that are not yet defined. /*
 func Init() error {
 	return godotenv.Load(".env")
 }
@@ -24,12 +25,14 @@ func Init() error {
 func (c *GlobalConfigs) Display() {
 	logger.Info(c.DBConfigs.format())
 	logger.Info(c.ServerConfigs.Format())
+	logger.Info(c.DiscordBotConfig.Format())
 }
 
 func GetGlobalConfigs() GlobalConfigs {
 	return GlobalConfigs{
-		DBConfigs:     GetDBConfigs(),
-		ServerConfigs: GetServerConfigs(),
+		DBConfigs:        GetDBConfigs(),
+		ServerConfigs:    GetServerConfigs(),
+		DiscordBotConfig: GetDiscordBotConfigs(),
 	}
 }
 

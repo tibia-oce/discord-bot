@@ -2,6 +2,7 @@ package configs
 
 import (
 	"fmt"
+
 	"github.com/sirupsen/logrus"
 	"golang.org/x/time/rate"
 )
@@ -65,7 +66,7 @@ func (httpConfigs *HttpConfigs) Format() string {
 }
 func getHttpConfigs() HttpConfigs {
 	return HttpConfigs{
-		Ip:   GetEnvStr(EnvAppIpKey, ""),
+		Ip:   GetEnvStr(EnvAppIpKey, "0.0.0.0"),
 		Port: GetEnvInt(EnvHttpPortKey, 80),
 	}
 }
@@ -79,7 +80,7 @@ func (grpcConfigs *GrpcConfigs) Format() string {
 }
 func getGrpcConfigs() GrpcConfigs {
 	return GrpcConfigs{
-		Ip:   GetEnvStr(EnvAppIpKey, ""),
+		Ip:   GetEnvStr(EnvAppIpKey, "0.0.0.0"),
 		Port: GetEnvInt(EnvGrpcPortKey, 9090),
 	}
 }
