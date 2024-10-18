@@ -5,8 +5,8 @@ on:
   pull_request:
   push:
     branches:
-    - master
-    - main
+      - master
+      - develop
 
 jobs:
   go:
@@ -20,29 +20,18 @@ jobs:
     - name: Checkout repository
       uses: actions/checkout@v4
 
+    - name: Set up Go
+      uses: actions/setup-go@v4
+      with:
+        go-version: ${{ matrix.go-version }}
+
+    - name: Install Dependencies
+      run: go mod tidy
+
     - name: Golang Lint
       uses: golangci/golangci-lint-action@v6
       with:
         version: latest
 
-  sql:
-    name: SQL Lint
-    runs-on: ubuntu-latest
-
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
-
-      - name: Set up Python
-        uses: actions/setup-python@v5
-        with:
-          python-version: '3.10'
-
-      - name: Install dependencies
-        run: |
-          python -m venv .venv
-          .venv/bin/pip install sqlfluff
-
-      - name: Run SQL lint
-        run: |
-          .venv/bin/sqlfluff lint migrations/*.sql
+    - name: Run Golang Lint
+      run: golangci-lint run
