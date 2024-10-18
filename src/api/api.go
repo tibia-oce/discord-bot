@@ -3,6 +3,9 @@ package api
 import (
 	"database/sql"
 	"errors"
+	"net/http"
+	"sync"
+
 	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
 	_ "github.com/go-sql-driver/mysql"
@@ -12,8 +15,7 @@ import (
 	"github.com/tibia-oce/discord-bot/src/logger"
 	"github.com/tibia-oce/discord-bot/src/network"
 	"google.golang.org/grpc"
-	"net/http"
-	"sync"
+	"google.golang.org/grpc/credentials/insecure"
 )
 
 type Api struct {
@@ -50,7 +52,8 @@ func (_api *Api) Initialize(gConfigs configs.GlobalConfigs) error {
 
 	var err error
 	/* Generate HTTP/GRPC reverse proxy */
-	_api.GrpcConnection, err = grpc.Dial(gConfigs.ServerConfigs.Grpc.Format(), grpc.WithInsecure())
+	_api.GrpcConnection, err = grpc.NewClient(gConfigs.ServerConfigs.Grpc.Format(),
+		grpc.WithTransportCredentials(insecure.NewCredentials()))
 	if err != nil {
 		logger.Error(errors.New("couldn't start GRPC reverse proxy"))
 		return err
