@@ -1,18 +1,20 @@
-name: Lint
+name: Code Testing
 
 on:
   workflow_dispatch:
   pull_request:
   push:
     branches:
-    - master
     - main
+    - master
 
 jobs:
   go:
-    name: Golang Lint
+    name: Run Golang Tests
     runs-on: ubuntu-latest
+
     strategy:
+      fail-fast: false
       matrix:
         go-version: [1.16.x]
 
@@ -20,7 +22,5 @@ jobs:
     - name: Checkout repository
       uses: actions/checkout@v4
 
-    - name: Golang Lint
-      uses: golangci/golangci-lint-action@v6
-      with:
-        version: latest
+    - name: Run tests
+      run: go test ./...

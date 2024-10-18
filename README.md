@@ -8,17 +8,17 @@
 
 ## Project
 
-Describe your project **HERE**
+todo
 
-### Getting **Started**
+### Getting Started
 
-Describe your project **HERE**
+todo
 
 **Enviroment Variables**
 
 |       NAME          |            HOW TO USE                |
 | :------------------ | :----------------------------------  |
-|`MYSQL_DBNAME`       | `database default database name`     |
+|`MYSQL_DBNAME`       | `database name`     |
 |`MYSQL_HOST`         | `database host`                      |
 |`MYSQL_PORT`         | `database port`                      |
 |`MYSQL_PASS`         | `database password`                  |
@@ -37,4 +37,4 @@ Describe your project **HERE**
 `go build -o TARGET_NAME ./src/`
 
 ## Docker
-`docker pull ghcr.io/tibia-oce/discord-bot:latest`<br><br>
+`docker pull ghcr.io/tibia-oce/discord-bot:latest`
