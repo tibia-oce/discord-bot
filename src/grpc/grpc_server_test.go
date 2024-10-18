@@ -2,17 +2,17 @@ package grpc_application
 
 import (
 	"database/sql"
+	"github.com/stretchr/testify/assert"
 	example_proto_messages "github.com/tibia-oce/discord-bot/src/grpc/example_proto_defs"
 	"github.com/tibia-oce/discord-bot/src/network"
-	"github.com/stretchr/testify/assert"
 	"testing"
 )
 
 func TestGrpcServer_GetName(t *testing.T) {
 	type fields struct {
-		DB                 *sql.DB
+		DB                   *sql.DB
 		exampleServiceServer example_proto_messages.ExampleServiceServer
-		ServerInterface    network.ServerInterface
+		ServerInterface      network.ServerInterface
 	}
 	tests := []struct {
 		name   string
@@ -26,9 +26,9 @@ func TestGrpcServer_GetName(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			ls := &GrpcServer{
-				DB:                 tt.fields.DB,
+				DB:                   tt.fields.DB,
 				ExampleServiceServer: tt.fields.exampleServiceServer,
-				ServerInterface:    tt.fields.ServerInterface,
+				ServerInterface:      tt.fields.ServerInterface,
 			}
 			assert.Equal(t, tt.want, ls.GetName())
 		})

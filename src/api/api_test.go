@@ -3,8 +3,8 @@ package api
 import (
 	"database/sql"
 	"github.com/gin-gonic/gin"
-	"github.com/tibia-oce/discord-bot/src/network"
 	"github.com/stretchr/testify/assert"
+	"github.com/tibia-oce/discord-bot/src/network"
 	"google.golang.org/grpc"
 	"testing"
 )
