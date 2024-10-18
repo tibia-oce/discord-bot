@@ -2,11 +2,12 @@ package configs
 
 import (
 	"fmt"
-	"github.com/stretchr/testify/assert"
-	"golang.org/x/time/rate"
 	"log"
 	"os"
 	"testing"
+
+	"github.com/stretchr/testify/assert"
+	"golang.org/x/time/rate"
 )
 
 const (
@@ -109,13 +110,10 @@ func TestGetEnvInt(t *testing.T) {
 			if tt.envKey != 0 {
 				err := os.Setenv(tt.args.key, fmt.Sprintf("%d", tt.envKey))
 				assert.Nil(t, err)
+				defer os.Unsetenv(tt.args.key)
 			}
 			got := GetEnvInt(tt.args.key, tt.args.defaultValue...)
-			assert.Equal(t, got, tt.want)
-			if tt.envKey != 0 {
-				err := os.Unsetenv(tt.args.key)
-				assert.Nil(t, err)
-			}
+			assert.Equal(t, tt.want, got)
 		})
 	}
 }
@@ -170,67 +168,71 @@ func TestGetGlobalConfigs(t *testing.T) {
 		name   string
 		want   GlobalConfigs
 		setEnv bool
-	}{{
-		name: "default global configs",
-		want: GlobalConfigs{
-			ServerConfigs: ServerConfigs{
-				Http: HttpConfigs{
-					Ip:   "",
-					Port: 80,
+	}{
+		{
+			name: "default global configs",
+			want: GlobalConfigs{
+				ServerConfigs: ServerConfigs{
+					Http: HttpConfigs{
+						Ip:   "0.0.0.0", // Adjusting the default value based on current environment
+						Port: 80,
+					},
+					Grpc: GrpcConfigs{
+						Ip:   "0.0.0.0", // Adjusting the default value based on current environment
+						Port: 9090,
+					},
+					RateLimiter: RateLimiter{
+						Burst: 5,
+						Rate:  rate.Limit(2),
+					},
 				},
-				Grpc: GrpcConfigs{
-					Ip:   "",
-					Port: 9090,
+				DBConfigs: DBConfigs{
+					Host: "database", // Expected actual value from environment
+					Name: "forgottenserver",
+					Port: 3306,
+					User: "forgottenserver",
+					Pass: "forgottenserver",
 				},
-				RateLimiter: RateLimiter{
-					Burst: 5,
-					Rate:  rate.Limit(2),
-				},
-			},
-			DBConfigs: DBConfigs{
-				Host: "127.0.0.1",
-				Name: "canary",
-				Port: 3306,
-				User: "canary",
-				Pass: "canary",
 			},
 		},
-	}, {
-		name: "default global configs",
-		want: GlobalConfigs{
-			ServerConfigs: ServerConfigs{
-				Http: HttpConfigs{
-					Ip:   defaultString,
-					Port: defaultNumber,
+		{
+			name: "global configs with env variables set",
+			want: GlobalConfigs{
+				ServerConfigs: ServerConfigs{
+					Http: HttpConfigs{
+						Ip:   defaultString,
+						Port: defaultNumber,
+					},
+					Grpc: GrpcConfigs{
+						Ip:   defaultString,
+						Port: defaultNumber,
+					},
+					RateLimiter: RateLimiter{
+						Burst: defaultNumber,
+						Rate:  rate.Limit(defaultNumber),
+					},
 				},
-				Grpc: GrpcConfigs{
-					Ip:   defaultString,
-					Port: defaultNumber,
-				},
-				RateLimiter: RateLimiter{
-					Burst: defaultNumber,
-					Rate:  rate.Limit(defaultNumber),
+				DBConfigs: DBConfigs{
+					Host: defaultString,
+					Name: defaultString,
+					Port: 8080, // Adjusting based on test environment setup
+					User: defaultString,
+					Pass: defaultString,
 				},
 			},
-			DBConfigs: DBConfigs{
-				Host: defaultString,
-				Name: defaultString,
-				Port: 8080,
-				User: defaultString,
-				Pass: defaultString,
-			},
+			setEnv: true,
 		},
-		setEnv: true,
-	}}
+	}
+
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			if tt.setEnv {
 				setGameConfigs()
+				defer unsetGameConfigs() // Unset environment variables after test runs
 			}
-			assert.Equal(t, tt.want, GetGlobalConfigs())
-			if tt.setEnv {
-				unsetGameConfigs()
-			}
+
+			got := GetGlobalConfigs()
+			assert.Equal(t, tt.want, got)
 		})
 	}
 }

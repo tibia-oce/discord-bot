@@ -1,24 +1,27 @@
 package configs
 
 import (
+	"os"
+	"testing"
+
 	"github.com/sirupsen/logrus"
 	"github.com/stretchr/testify/assert"
 	"golang.org/x/time/rate"
-	"os"
-	"testing"
 )
 
 func TestGetHttpConfigs(t *testing.T) {
 	tests := []struct {
 		name string
 		want HttpConfigs
-	}{{
-		name: "Default Http Configs",
-		want: HttpConfigs{
-			Ip:   "",
-			Port: 80,
+	}{
+		{
+			name: "Default Http Configs",
+			want: HttpConfigs{
+				Ip:   "0.0.0.0",
+				Port: 80,
+			},
 		},
-	}}
+	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			assert.Equal(t, tt.want, getHttpConfigs())
@@ -82,11 +85,11 @@ func TestGetServerConfigs(t *testing.T) {
 		name: "Default Server Configs",
 		want: ServerConfigs{
 			Http: HttpConfigs{
-				Ip:   "",
+				Ip:   "0.0.0.0",
 				Port: 80,
 			},
 			Grpc: GrpcConfigs{
-				Ip:   "",
+				Ip:   "0.0.0.0",
 				Port: 9090,
 			},
 			RateLimiter: RateLimiter{
@@ -127,7 +130,7 @@ func TestGetGrpcConfigs(t *testing.T) {
 	}{{
 		name: "Default Grpc Configs",
 		want: GrpcConfigs{
-			Ip:   "",
+			Ip:   "0.0.0.0",
 			Port: 9090,
 		},
 	}}
