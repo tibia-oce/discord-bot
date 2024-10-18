@@ -20,6 +20,7 @@ on:
   push:
     branches:
       - master
+      - develop
     paths:
       - .github/renovate.json
       - .github/renovate/**.json
