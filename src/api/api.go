@@ -47,11 +47,10 @@ func (_api *Api) Initialize(gConfigs configs.GlobalConfigs) error {
 	config.AllowCredentials = true
 	_api.Router.Use(cors.New(config))
 	_api.Router.HandleMethodNotAllowed = true
-
 	_api.initializeRoutes()
 
-	var err error
 	/* Generate HTTP/GRPC reverse proxy */
+	var err error
 	_api.GrpcConnection, err = grpc.NewClient(gConfigs.ServerConfigs.Grpc.Format(),
 		grpc.WithTransportCredentials(insecure.NewCredentials()))
 	if err != nil {
@@ -82,28 +81,13 @@ func (_api *Api) GetName() string {
 
 func (_api *Api) initializeRoutes() {
 	_api.Router.POST("/user/login", _api.login)
-	_api.Router.POST("/user/resetPassword", _api.resetPassword)
-	_api.Router.POST("/user/register", _api.register)
-	_api.Router.GET("/user/refresh", _api.refresh)
-	_api.Router.GET("/user/verification/:token", _api.verifyEmail)
 
+	// Group creates a new router group. You should add all the routes that have common middlewares or the same path prefix.
+	// For example, all the routes that use a common middleware for authorization could be grouped.
 	authorized := _api.Router.Group("/")
 	authorized.Use(middlewares.VerifyTokenHandler(_api.DB))
 	{
 		authorized.POST("/grpc", _api.grpcExample)
-		authorized.GET("/user/logout", _api.logout)
 	}
 
-	authorized.Use(isVerified)
-	{
-		authorized.POST("/grpc2", _api.grpcExample)
-	}
-}
-
-func isVerified(c *gin.Context) {
-	user := getUserSession(c)
-
-	if !user.Verified {
-		c.AbortWithStatusJSON(http.StatusForbidden, gin.H{"error": "Email address not yet verified"})
-	}
 }

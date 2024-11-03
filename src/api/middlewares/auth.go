@@ -2,11 +2,12 @@ package middlewares
 
 import (
 	"database/sql"
+	"net/http"
+
 	jwt "github.com/dgrijalva/jwt-go"
 	"github.com/gin-gonic/gin"
 	"github.com/tibia-oce/discord-bot/src/database"
 	"github.com/tibia-oce/discord-bot/src/security"
-	"net/http"
 )
 
 const (
@@ -35,10 +36,6 @@ func VerifyTokenHandler(db *sql.DB) gin.HandlerFunc {
 
 		c.Set("user", user)
 	}
-}
-
-func GenerateEmailVerificationURL(user *database.User) string {
-	return security.InitToken(user, VerificationTokenLifetime).Sign().GenerateVerificationURL()
 }
 
 func GenerateAccessToken(c *gin.Context, user *database.User, lifetime ...int64) *security.TokenManager {

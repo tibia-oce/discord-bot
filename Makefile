@@ -1,3 +1,9 @@
+compose: env
+	docker-compose -f docker/docker-compose.yml down -v
+	docker volume prune -f
+	docker-compose -f docker/docker-compose.yml up --build -d
+	docker logs server -f
+
 build:
 	go build -o ./bin/application ./src/main.go
 
@@ -9,10 +15,8 @@ test:
 
 clean:
 	rm -rf ./bin
-
-compose:
-	docker-compose -f docker/docker-compose.yml down
-	docker-compose -f docker/docker-compose.yml up --build
+	docker-compose down -v
+	docker system prune -a --volumes -f
 
 fmt:
 	gofmt -s -w .
@@ -22,3 +26,6 @@ fmt:
 # source ~/.zshrc ----OR---- source ~/.bashrc
 lint:
 	golangci-lint run
+
+env:
+	@ if [ ! -f .env ]; then cp .env.example .env; fi
