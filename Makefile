@@ -2,7 +2,7 @@ compose: env
 	docker-compose -f docker/docker-compose.yml down -v
 	docker volume prune -f
 	docker-compose -f docker/docker-compose.yml up --build -d
-	docker logs server -f
+	docker logs bot -f
 
 build:
 	go build -o ./bin/application ./src/main.go
@@ -15,7 +15,7 @@ test:
 
 clean:
 	rm -rf ./bin
-	docker-compose down -v
+	docker-compose -f docker/docker-compose.yml down -v
 	docker system prune -a --volumes -f
 
 fmt:

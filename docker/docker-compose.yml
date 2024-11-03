@@ -2,7 +2,7 @@ version: "3.3"
 
 services:
 
-  application:
+  bot:
     container_name: application
     build:
       context: ..
