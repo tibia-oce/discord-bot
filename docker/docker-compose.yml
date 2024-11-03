@@ -1,9 +1,7 @@
-version: "3.3"
-
 services:
 
   bot:
-    container_name: application
+    container_name: bot
     build:
       context: ..
       dockerfile: docker/Dockerfile
