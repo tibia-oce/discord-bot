@@ -1,7 +1,11 @@
 package main
 
 import (
+	"context"
+	"os"
+	"os/signal"
 	"sync"
+	"syscall"
 	"time"
 
 	"github.com/tibia-oce/discord-bot/src/api"
@@ -19,7 +23,7 @@ func main() {
 	logger.Init(configs.GetLogLevel())
 	logger.Info("Loading configurations...")
 
-	var wg sync.WaitGroup
+	wg := &sync.WaitGroup{} // Using a pointer to sync.WaitGroup to maintain the reference
 	wg.Add(numberOfServers)
 
 	err := configs.Init()
@@ -29,8 +33,8 @@ func main() {
 
 	gConfigs := configs.GetGlobalConfigs()
 
-	go network.StartServer(&wg, gConfigs, &grpc_application.GrpcServer{})
-	go network.StartServer(&wg, gConfigs, &api.Api{})
+	go network.StartServer(wg, gConfigs, &grpc_application.GrpcServer{})
+	go network.StartServer(wg, gConfigs, &api.Api{})
 
 	go func() {
 		defer wg.Done()
@@ -48,6 +52,32 @@ func main() {
 	time.Sleep(time.Duration(initDelay) * time.Millisecond)
 	gConfigs.Display()
 
-	wg.Wait()
-	logger.Info("Good bye...")
+	setupSignalHandling(wg)
+}
+
+func setupSignalHandling(wg *sync.WaitGroup) {
+	stop := make(chan os.Signal, 1)
+	signal.Notify(stop, os.Interrupt, syscall.SIGTERM)
+	<-stop
+
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+
+	shutdown(ctx, wg)
+}
+
+func shutdown(ctx context.Context, wg *sync.WaitGroup) {
+	done := make(chan bool, 1)
+	go func() {
+		wg.Wait() // Ensure all operations are completed
+		logger.Info("All servers gracefully shut down.")
+		done <- true
+	}()
+
+	select {
+	case <-done:
+		logger.Info("Shutdown completed")
+	case <-ctx.Done():
+		logger.Warn("Shutdown timed out")
+	}
 }
