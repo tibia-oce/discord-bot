@@ -3,6 +3,7 @@ package discord
 
 import (
 	"fmt"
+	"math"
 	"os"
 	"os/signal"
 	"time"
@@ -17,6 +18,12 @@ type Bot struct {
 	GuildID string
 }
 
+type Command struct {
+	Name        string
+	Description string
+	Handler     func(s *discordgo.Session, i *discordgo.InteractionCreate)
+}
+
 func (b *Bot) Init() error {
 	if b.Token == "" {
 		return fmt.Errorf("no Discord token provided")
@@ -29,21 +36,27 @@ func (b *Bot) Init() error {
 
 	b.Session = session
 	b.Session.ShouldReconnectOnError = true
-
 	b.Session.AddHandler(b.onReady())
 	b.Session.AddHandler(b.onReconnect())
 	b.Session.AddHandler(b.onDisconnect())
 	b.Session.AddHandler(b.interactionHandler)
 
 	// Open WebSocket connection
-	err = b.Session.Open()
-	if err != nil {
+	if err := b.Session.Open(); err != nil {
 		return fmt.Errorf("error opening Discord connection: %v", err)
+	}
+
+	if err := b.startLatencyMonitor(); err != nil {
+		return fmt.Errorf("error starting latency monitor: %v", err)
+	}
+
+	if err := b.registerCommands(); err != nil {
+		return fmt.Errorf("error registering commands: %v", err)
 	}
 
 	logger.Info("Bot is now running!")
 
-	return b.registerCommands()
+	return nil
 }
 
 func (b *Bot) onReady() func(s *discordgo.Session, r *discordgo.Ready) {
@@ -60,16 +73,8 @@ func (b *Bot) onReconnect() func(s *discordgo.Session, r *discordgo.Resumed) {
 
 func (b *Bot) onDisconnect() func(s *discordgo.Session, d *discordgo.Disconnect) {
 	return func(s *discordgo.Session, d *discordgo.Disconnect) {
-		logger.Warn(fmt.Sprintf("Bot disconnected. Reconnecting... Reason: %v", d))
-		for {
-			err := s.Open()
-			if err == nil {
-				logger.Info("Reconnected successfully")
-				break
-			}
-			logger.Error(fmt.Errorf("reconnect failed: %v", err))
-			time.Sleep(5 * time.Second)
-		}
+		logger.Warn("Bot disconnected. Attempting to reconnect...")
+		retryReconnection(s)
 	}
 }
 
@@ -87,4 +92,82 @@ func (b *Bot) WaitForShutdown() {
 
 	logger.Info("Gracefully shutting down.")
 	b.Close()
+}
+
+// Check latency every 30 seconds
+// https://github.com/bwmarrin/discordgo/issues/908
+func (b *Bot) startLatencyMonitor() error {
+	if b.Session == nil {
+		return fmt.Errorf("session is not initialized")
+	}
+
+	ticker := time.NewTicker(30 * time.Second)
+	go func() {
+		for range ticker.C {
+			latency := b.Session.HeartbeatLatency()
+			logger.Info(fmt.Sprintf("Current heartbeat latency: %v", latency))
+		}
+	}()
+	return nil
+}
+
+func retryReconnection(session *discordgo.Session) {
+	const maxRetries = 5
+	const baseDelay = 5 * time.Second
+
+	for i := 0; i < maxRetries; i++ {
+		err := session.Open()
+		if err == nil {
+			logger.Info("Reconnected successfully")
+			return
+		}
+
+		logger.Error(fmt.Errorf("reconnect attempt %d failed: %v; retrying in %v seconds", i+1, err, int(math.Pow(2, float64(i)))))
+		time.Sleep(time.Duration(math.Pow(2, float64(i))) * baseDelay)
+	}
+
+	logger.Info("All reconnect attempts failed")
+}
+
+// routes incoming interactions to the appropriate handler function
+func (b *Bot) interactionHandler(s *discordgo.Session, i *discordgo.InteractionCreate) {
+	commandName := i.ApplicationCommandData().Name
+	userID := i.Interaction.Member.User.Username
+	channelID := i.ChannelID
+	logger.Info(fmt.Sprintf("Command triggered: %s, User ID: %s, Channel ID: %s", commandName, userID, channelID))
+	if handler, ok := commandHandlers[commandName]; ok {
+		handler(s, i)
+	} else {
+		logger.Warn("Unknown command interaction received.")
+	}
+}
+
+// registers all commands with Discord
+func (b *Bot) registerCommands() error {
+	for _, cmd := range getCommands() {
+		if _, err := b.Session.ApplicationCommandCreate(b.Session.State.User.ID, b.GuildID, &discordgo.ApplicationCommand{
+			Name:        cmd.Name,
+			Description: cmd.Description,
+		}); err != nil {
+			return fmt.Errorf("failed to register command %s: %v", cmd.Name, err)
+		}
+	}
+	return nil
+}
+
+// returns a list of available commands
+func getCommands() []Command {
+	return []Command{
+		{
+			Name:        "basic-command",
+			Description: "Basic command",
+			Handler:     handleBasicCommand,
+		},
+		// Add more commands here
+	}
+}
+
+// maps command names to their handler functions
+var commandHandlers = map[string]func(s *discordgo.Session, i *discordgo.InteractionCreate){
+	"basic-command": handleBasicCommand,
 }
