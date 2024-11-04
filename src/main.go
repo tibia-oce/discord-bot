@@ -41,6 +41,7 @@ func main() {
 		bot := &discord.Bot{
 			Token:   gConfigs.DiscordBotConfig.Token,
 			GuildID: gConfigs.DiscordBotConfig.GuildID,
+			AppID:   gConfigs.DiscordBotConfig.AppID,
 		}
 		if err := bot.Init(); err != nil {
 			logger.Error(err)

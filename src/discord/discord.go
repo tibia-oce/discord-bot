@@ -16,6 +16,7 @@ type Bot struct {
 	Session *discordgo.Session
 	Token   string
 	GuildID string
+	AppID   string
 }
 
 type Command struct {

@@ -6,12 +6,14 @@ import (
 
 const (
 	EnvDiscordTokenKey = "DISCORD_TOKEN"
-	EnvDiscordGuildID  = "DISCORD_GUILD_ID"
+	EnvDiscordGuildID  = "DISCORD_SERVER_ID"
+	EnvDiscordAppID    = "DISCORD_APP_ID"
 )
 
 type DiscordBotConfigs struct {
 	Token   string
 	GuildID string
+	AppID   string
 	Config
 }
 
@@ -26,5 +28,6 @@ func GetDiscordBotConfigs() DiscordBotConfigs {
 	return DiscordBotConfigs{
 		Token:   GetEnvStr(EnvDiscordTokenKey, ""),
 		GuildID: GetEnvStr(EnvDiscordGuildID, ""),
+		AppID:   GetEnvStr(EnvDiscordAppID, ""),
 	}
 }
