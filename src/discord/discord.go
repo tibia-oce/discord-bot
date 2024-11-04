@@ -132,14 +132,28 @@ func retryReconnection(session *discordgo.Session) {
 
 // routes incoming interactions to the appropriate handler function
 func (b *Bot) interactionHandler(s *discordgo.Session, i *discordgo.InteractionCreate) {
-	commandName := i.ApplicationCommandData().Name
-	userID := i.Interaction.Member.User.Username
-	channelID := i.ChannelID
-	logger.Info(fmt.Sprintf("Command triggered: %s, User ID: %s, Channel ID: %s", commandName, userID, channelID))
-	if handler, ok := commandHandlers[commandName]; ok {
-		handler(s, i)
-	} else {
-		logger.Warn("Unknown command interaction received.")
+	switch i.Type {
+	case discordgo.InteractionApplicationCommand:
+		commandName := i.ApplicationCommandData().Name
+		userID := i.Interaction.Member.User.Username
+		channelID := i.ChannelID
+		logger.Info(fmt.Sprintf("Command triggered: %s, User ID: %s, Channel ID: %s", commandName, userID, channelID))
+		if handler, ok := commandHandlers[commandName]; ok {
+			handler(s, i)
+		} else {
+			logger.Warn("Unknown command interaction received.")
+		}
+
+	case discordgo.InteractionMessageComponent:
+		// Handle component interactions (e.g., button presses)
+		switch i.MessageComponentData().CustomID {
+		case "prompt_yes":
+			handleYesResponse(s, i)
+		case "prompt_no":
+			handleNoResponse(s, i)
+		default:
+			logger.Warn("Unknown component interaction received.")
+		}
 	}
 }
 
@@ -164,11 +178,16 @@ func getCommands() []Command {
 			Description: "Basic command",
 			Handler:     handleBasicCommand,
 		},
-		// Add more commands here
+		{
+			Name:        "button-prompt",
+			Description: "Displays a simple Yes/No prompt",
+			Handler:     handleButtonPrompt,
+		},
 	}
 }
 
 // maps command names to their handler functions
 var commandHandlers = map[string]func(s *discordgo.Session, i *discordgo.InteractionCreate){
 	"basic-command": handleBasicCommand,
+	"button-prompt": handleButtonPrompt,
 }
