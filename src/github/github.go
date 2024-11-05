@@ -12,6 +12,14 @@ func NewGitHubClient() *GitHubClient {
 	return &GitHubClient{}
 }
 
-func (g *GitHubClient) CreateIssue(title, body string) {
-	logger.Info(fmt.Sprintf("GitHub Issue Created - Title: %s\nBody: %s", title, body))
+func (g *GitHubClient) CreateIssue(repository, issueType, title, description, imageLink string) {
+	issueBody := fmt.Sprintf(
+		"**Issue Type:** %s\n**Description:** %s",
+		issueType, description,
+	)
+	if imageLink != "" {
+		issueBody += fmt.Sprintf("\n**Image Link:** %s", imageLink)
+	}
+
+	logger.Info(fmt.Sprintf("GitHub Issue Created in Repository: %s\nTitle: %s\nBody:\n%s", repository, title, issueBody))
 }

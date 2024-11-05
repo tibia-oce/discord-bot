@@ -5,6 +5,7 @@ import (
 	"fmt"
 
 	"github.com/bwmarrin/discordgo"
+	"github.com/tibia-oce/discord-bot/src/github"
 	"github.com/tibia-oce/discord-bot/src/logger"
 )
 
@@ -109,66 +110,66 @@ func handleExtendedForm(s *discordgo.Session, i *discordgo.InteractionCreate) {
 	err := s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
 		Type: discordgo.InteractionResponseChannelMessageWithSource,
 		Data: &discordgo.InteractionResponseData{
-			Content: "Please fill out the form and provide an image:",
+			Content: "Please select the repository and issue type:",
 			Flags:   discordgo.MessageFlagsEphemeral,
 			Components: []discordgo.MessageComponent{
-				// First dropdown for primary selection
+				// Dropdown for repository selection
 				discordgo.ActionsRow{
 					Components: []discordgo.MessageComponent{
 						discordgo.SelectMenu{
-							CustomID:    "primary_select_menu",
-							Placeholder: "Select a primary option",
+							CustomID:    "repository_select_menu",
+							Placeholder: "Select a repository",
 							Options: []discordgo.SelectMenuOption{
 								{
 									Label:       "Server",
 									Value:       "server",
-									Description: "This is the first primary option",
+									Description: "Issues related to the server",
 								},
 								{
 									Label:       "Client",
 									Value:       "client",
-									Description: "This is the second primary option",
+									Description: "Issues related to the client",
 								},
 								{
 									Label:       "Map & Assets",
 									Value:       "assets",
-									Description: "This is the third primary option",
+									Description: "Issues related to map and assets",
 								},
 							},
 						},
 					},
 				},
-				// Second dropdown for secondary selection
+				// Dropdown for issue type selection
 				discordgo.ActionsRow{
 					Components: []discordgo.MessageComponent{
 						discordgo.SelectMenu{
-							CustomID:    "secondary_select_menu",
-							Placeholder: "Select a secondary option",
+							CustomID:    "issue_type_select_menu",
+							Placeholder: "Select an issue type",
 							Options: []discordgo.SelectMenuOption{
 								{
-									Label:       "Option 1",
-									Value:       "option1",
-									Description: "This is the first secondary option",
+									Label:       "Bug Report",
+									Value:       "bug",
+									Description: "Report a bug",
 								},
 								{
-									Label:       "Option 2",
-									Value:       "option2",
-									Description: "This is the second secondary option",
+									Label:       "Feature Request",
+									Value:       "feature",
+									Description: "Request a new feature",
 								},
 								{
-									Label:       "Option 3",
-									Value:       "option3",
-									Description: "This is the third secondary option",
+									Label:       "Other",
+									Value:       "other",
+									Description: "Other types of issues",
 								},
 							},
 						},
 					},
 				},
-				// Button to open modal for text input
+				// Button to open modal for issue details
 				discordgo.ActionsRow{
 					Components: []discordgo.MessageComponent{
 						discordgo.Button{
-							Label:    "Enter Title and Description",
+							Label:    "Enter Issue Details",
 							Style:    discordgo.PrimaryButton,
 							CustomID: "open_modal",
 						},
@@ -187,33 +188,46 @@ func handleOpenModal(s *discordgo.Session, i *discordgo.InteractionCreate) {
 	err := s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
 		Type: discordgo.InteractionResponseModal,
 		Data: &discordgo.InteractionResponseData{
-			CustomID: "text_input_modal",
-			Title:    "Enter Details",
+			CustomID: "issue_details_modal",
+			Title:    "Issue Details",
 			Components: []discordgo.MessageComponent{
+				// Title input
 				discordgo.ActionsRow{Components: []discordgo.MessageComponent{
 					discordgo.TextInput{
-						CustomID:    "title_input",
-						Label:       "Title",
+						CustomID:    "issue_title_input",
+						Label:       "Issue Title",
 						Style:       discordgo.TextInputShort,
-						Placeholder: "Enter a title",
+						Placeholder: "Brief title of the issue",
 						Required:    true,
 					},
 				}},
+				// Expected behavior input
 				discordgo.ActionsRow{Components: []discordgo.MessageComponent{
 					discordgo.TextInput{
-						CustomID:    "description_input",
-						Label:       "Description",
+						CustomID:    "expected_behavior_input",
+						Label:       "Expected Behavior",
 						Style:       discordgo.TextInputParagraph,
-						Placeholder: "Enter a description",
+						Placeholder: "Describe the expected behavior",
 						Required:    true,
 					},
 				}},
+				// Current behavior input
+				discordgo.ActionsRow{Components: []discordgo.MessageComponent{
+					discordgo.TextInput{
+						CustomID:    "current_behavior_input",
+						Label:       "Current Behavior",
+						Style:       discordgo.TextInputParagraph,
+						Placeholder: "Describe the current behavior",
+						Required:    true,
+					},
+				}},
+				// Optional image link input
 				discordgo.ActionsRow{Components: []discordgo.MessageComponent{
 					discordgo.TextInput{
 						CustomID:    "image_link_input",
-						Label:       "Image Link",
+						Label:       "Image Link (optional)",
 						Style:       discordgo.TextInputShort,
-						Placeholder: "Enter a URL to the image",
+						Placeholder: "URL to an image or screenshot",
 						Required:    false,
 					},
 				}},
@@ -225,25 +239,25 @@ func handleOpenModal(s *discordgo.Session, i *discordgo.InteractionCreate) {
 	}
 }
 
-// Handle modal submission
-func handleModalSubmit(s *discordgo.Session, i *discordgo.InteractionCreate) {
+func handleModalSubmit(s *discordgo.Session, i *discordgo.InteractionCreate, ghClient *github.GitHubClient) {
 	data := i.ModalSubmitData()
 	title := data.Components[0].(*discordgo.ActionsRow).Components[0].(*discordgo.TextInput).Value
 	description := data.Components[1].(*discordgo.ActionsRow).Components[0].(*discordgo.TextInput).Value
 	imageLink := data.Components[2].(*discordgo.ActionsRow).Components[0].(*discordgo.TextInput).Value
-	primarySelection := selectedOptions["primary_select_menu"]
-	secondarySelection := selectedOptions["secondary_select_menu"]
+	repository := selectedOptions["repository_select_menu"]
+	issueType := selectedOptions["issue_type_select_menu"]
 
-	// Format the message with all user-provided inputs and selections
+	// Consolidated content to display in Discord and log in GitHub placeholder
 	content := fmt.Sprintf(
-		"**Form Submission Details:**\n\n**Title:** %s\n**Description:** %s\n**Primary Selection:** %s\n**Secondary Selection:** %s",
-		title, description, primarySelection, secondarySelection,
+		"**Form Submission Details:**\n\n**Title:** %s\n**Description:** %s\n**Repository:** %s\n**Issue Type:** %s",
+		title, description, repository, issueType,
 	)
 	if imageLink != "" {
 		content += fmt.Sprintf("\n**Image Link:** %s", imageLink)
 	}
 
-	// Respond to the interaction with the final content
+	ghClient.CreateIssue(repository, issueType, title, description, imageLink)
+
 	err := s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
 		Type: discordgo.InteractionResponseChannelMessageWithSource,
 		Data: &discordgo.InteractionResponseData{
@@ -258,8 +272,8 @@ func handleModalSubmit(s *discordgo.Session, i *discordgo.InteractionCreate) {
 
 // Final submit handler that gathers selections and sends them
 func handleFormSubmit(s *discordgo.Session, i *discordgo.InteractionCreate, issueChannelID string) {
-	primary := selectedOptions["primary_select_menu"]
-	secondary := selectedOptions["secondary_select_menu"]
+	primary := selectedOptions["repository_select_menu"]
+	secondary := selectedOptions["issue_type_select_menu"]
 	content := fmt.Sprintf("Form submitted:\nPrimary selection: %s\nSecondary selection: %s", primary, secondary)
 
 	// Send the form data to the specified channel

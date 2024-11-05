@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"github.com/bwmarrin/discordgo"
+	"github.com/tibia-oce/discord-bot/src/github"
 	"github.com/tibia-oce/discord-bot/src/logger"
 )
 
@@ -41,7 +42,11 @@ func (b *Bot) Init() error {
 	b.Session.AddHandler(b.onReady())
 	b.Session.AddHandler(b.onReconnect())
 	b.Session.AddHandler(b.onDisconnect())
-	b.Session.AddHandler(b.interactionHandler)
+
+	ghClient := github.NewGitHubClient()
+	b.Session.AddHandler(func(s *discordgo.Session, i *discordgo.InteractionCreate) {
+		b.interactionHandler(s, i, ghClient)
+	})
 
 	// Open WebSocket connection
 	if err := b.Session.Open(); err != nil {
@@ -132,7 +137,7 @@ func retryReconnection(session *discordgo.Session) {
 }
 
 // routes incoming interactions to the appropriate handler function
-func (b *Bot) interactionHandler(s *discordgo.Session, i *discordgo.InteractionCreate) {
+func (b *Bot) interactionHandler(s *discordgo.Session, i *discordgo.InteractionCreate, ghClient *github.GitHubClient) {
 	switch i.Type {
 	case discordgo.InteractionApplicationCommand:
 		commandName := i.ApplicationCommandData().Name
@@ -148,9 +153,9 @@ func (b *Bot) interactionHandler(s *discordgo.Session, i *discordgo.InteractionC
 			handleYesResponse(s, i)
 		case "prompt_no":
 			handleNoResponse(s, i)
-		case "primary_select_menu": // Added case for primary selection
+		case "repository_select_menu":
 			handleSelection(s, i)
-		case "secondary_select_menu": // Added case for secondary selection
+		case "issue_type_select_menu":
 			handleSelection(s, i)
 		case "select_menu":
 			handleSelectMenuResponse(s, i, b.IssueChannelID)
@@ -163,8 +168,8 @@ func (b *Bot) interactionHandler(s *discordgo.Session, i *discordgo.InteractionC
 		}
 
 	case discordgo.InteractionModalSubmit:
-		if i.ModalSubmitData().CustomID == "text_input_modal" {
-			handleModalSubmit(s, i)
+		if i.ModalSubmitData().CustomID == "issue_details_modal" {
+			handleModalSubmit(s, i, ghClient)
 		} else {
 			logger.Warn(fmt.Sprintf("Unknown modal submission received: %s", i.ModalSubmitData().CustomID))
 		}
