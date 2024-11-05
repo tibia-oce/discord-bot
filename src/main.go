@@ -39,9 +39,10 @@ func main() {
 	go func() {
 		defer wg.Done()
 		bot := &discord.Bot{
-			Token:   gConfigs.DiscordBotConfig.Token,
-			GuildID: gConfigs.DiscordBotConfig.GuildID,
-			AppID:   gConfigs.DiscordBotConfig.AppID,
+			Token:          gConfigs.DiscordBotConfig.Token,
+			GuildID:        gConfigs.DiscordBotConfig.GuildID,
+			AppID:          gConfigs.DiscordBotConfig.AppID,
+			IssueChannelID: gConfigs.DiscordBotConfig.IssueChannelID,
 		}
 		if err := bot.Init(); err != nil {
 			logger.Error(err)

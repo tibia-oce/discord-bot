@@ -13,10 +13,11 @@ import (
 )
 
 type Bot struct {
-	Session *discordgo.Session
-	Token   string
-	GuildID string
-	AppID   string
+	Session        *discordgo.Session
+	Token          string
+	GuildID        string
+	AppID          string
+	IssueChannelID string
 }
 
 type Command struct {
@@ -135,24 +136,37 @@ func (b *Bot) interactionHandler(s *discordgo.Session, i *discordgo.InteractionC
 	switch i.Type {
 	case discordgo.InteractionApplicationCommand:
 		commandName := i.ApplicationCommandData().Name
-		userID := i.Interaction.Member.User.Username
-		channelID := i.ChannelID
-		logger.Info(fmt.Sprintf("Command triggered: %s, User ID: %s, Channel ID: %s", commandName, userID, channelID))
 		if handler, ok := commandHandlers[commandName]; ok {
 			handler(s, i)
 		} else {
-			logger.Warn("Unknown command interaction received.")
+			logger.Warn(fmt.Sprintf("Unknown slash command interaction received: %s", commandName))
 		}
 
 	case discordgo.InteractionMessageComponent:
-		// Handle component interactions (e.g., button presses)
 		switch i.MessageComponentData().CustomID {
 		case "prompt_yes":
 			handleYesResponse(s, i)
 		case "prompt_no":
 			handleNoResponse(s, i)
+		case "primary_select_menu": // Added case for primary selection
+			handleSelection(s, i)
+		case "secondary_select_menu": // Added case for secondary selection
+			handleSelection(s, i)
+		case "select_menu":
+			handleSelectMenuResponse(s, i, b.IssueChannelID)
+		case "open_modal":
+			handleOpenModal(s, i)
+		case "form_submit", "text_input_submit":
+			handleFormSubmit(s, i, b.IssueChannelID)
 		default:
-			logger.Warn("Unknown component interaction received.")
+			logger.Warn(fmt.Sprintf("Unknown component interaction received: %s", i.MessageComponentData().CustomID))
+		}
+
+	case discordgo.InteractionModalSubmit:
+		if i.ModalSubmitData().CustomID == "text_input_modal" {
+			handleModalSubmit(s, i)
+		} else {
+			logger.Warn(fmt.Sprintf("Unknown modal submission received: %s", i.ModalSubmitData().CustomID))
 		}
 	}
 }
@@ -183,6 +197,11 @@ func getCommands() []Command {
 			Description: "Displays a simple Yes/No prompt",
 			Handler:     handleButtonPrompt,
 		},
+		{
+			Name:        "select-menu",
+			Description: "Displays a select menu with three choices",
+			Handler:     handleExtendedForm,
+		},
 	}
 }
 
@@ -190,4 +209,5 @@ func getCommands() []Command {
 var commandHandlers = map[string]func(s *discordgo.Session, i *discordgo.InteractionCreate){
 	"basic-command": handleBasicCommand,
 	"button-prompt": handleButtonPrompt,
+	"select-menu":   handleExtendedForm,
 }
